@@ -1,5 +1,5 @@
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KirikGodHubV22"
+ScreenGui.Name = "KirikSmartHubV23"
 ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.ResetOnSpawn = false
 
@@ -23,7 +23,7 @@ local Stroke = Instance.new("UIStroke", MainFrame)
 Stroke.Color = Color3.fromRGB(255, 0, 0)
 Stroke.Thickness = 2
 
--- ПЕРЕМЕЩЕНИЕ ОКНА (DRAG)
+-- ПЕРЕМЕЩЕНИЕ ОКНА
 local dragging, dragStart, startPos
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -46,7 +46,7 @@ Content.BackgroundTransparency = 1
 Content.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
-Title.Text = "KIRIK GOD HUB"
+Title.Text = "KIRIK SMART HUB"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -82,33 +82,72 @@ PlayerList.Parent = Content
 Instance.new("UIListLayout", PlayerList).Padding = UDim.new(0, 3)
 
 local UnattackedBtn = CreateButton("UN ATTACKED: OFF", UDim2.new(0.05, 0, 0, 185), Color3.fromRGB(0, 100, 0))
-local RetreatBtn = CreateButton("SAFE RETREAT (ESCAPE)", UDim2.new(0.05, 0, 0, 215), Color3.fromRGB(200, 150, 0))
+local RetreatBtn = CreateButton("SMART ESCAPE", UDim2.new(0.05, 0, 0, 215), Color3.fromRGB(200, 150, 0))
 local CrushBtn = CreateButton("THROW TRASH", UDim2.new(0.05, 0, 0, 245), Color3.fromRGB(200, 0, 0))
 local ResetBtn = CreateButton("RESET CAMERA", UDim2.new(0.05, 0, 0, 275), Color3.fromRGB(0, 50, 150))
 local CloseBtn = CreateButton("CLOSE HUB", UDim2.new(0.05, 0, 0, 315), Color3.fromRGB(30, 30, 30))
 
--- ЛОГИКА
-local listMode = "TP"
-local selectedPlayer = nil
-local unattackedActive = false
-local espActive = false
-
--- ФУНКЦИЯ ПРОВЕРКИ ПОЛА (RAYCAST)
+-- ЛОГИКА ПРОВЕРКИ ПОЛА
 local function findSafePoint(targetPos)
-    local rayOrigin = targetPos + Vector3.new(0, 150, 0)
-    local rayDirection = Vector3.new(0, -300, 0)
+    local rayOrigin = targetPos + Vector3.new(0, 200, 0)
+    local rayDirection = Vector3.new(0, -400, 0)
     local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, workspace.Debris}
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 
     local result = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-    if result and result.Instance.CanCollide then
-        return result.Position + Vector3.new(0, 3, 0)
+    if result and result.Instance and result.Instance.CanCollide then
+        -- Проверяем, что это не просто мелкий предмет, а что-то похожее на пол
+        if result.Instance.Size.X > 2 and result.Instance.Size.Z > 2 then
+            return result.Position + Vector3.new(0, 3, 0)
+        end
     end
     return nil
 end
 
--- ОБНОВЛЕНИЕ СПИСКА ИГРОКОВ
+-- SMART ESCAPE (УЛУЧШЕННОЕ)
+RetreatBtn.MouseButton1Click:Connect(function()
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Углы поиска (от дальних к ближним)
+    local checkRadii = {500, 350, 200, 50, 0}
+    local angles = {
+        Vector3.new(1, 0, 1), Vector3.new(-1, 0, 1),
+        Vector3.new(1, 0, -1), Vector3.new(-1, 0, -1)
+    }
+    
+    local bestPoint = nil
+    local maxDist = 0
+    
+    -- Перебираем радиусы от самого большого к самому маленькому
+    for _, radius in ipairs(checkRadii) do
+        for _, dir in ipairs(angles) do
+            local testPos = dir * radius
+            local safePos = findSafePoint(testPos)
+            
+            if safePos then
+                local d = (hrp.Position - safePos).Magnitude
+                if d > maxDist then
+                    maxDist = d
+                    bestPoint = safePos
+                end
+            end
+        end
+        -- Если на этом радиусе нашли хоть одну точку, дальше можно не искать
+        if bestPoint then break end
+    end
+    
+    if bestPoint then
+        hrp.CFrame = CFrame.new(bestPoint)
+    else
+        RetreatBtn.Text = "NO SAFE FLOOR!"
+        task.wait(1)
+        RetreatBtn.Text = "SMART ESCAPE"
+    end
+end)
+
+-- ОБНОВЛЕНИЕ СПИСКА
 local function updateList()
     for _, child in pairs(PlayerList:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     for _, player in pairs(Players:GetPlayers()) do
@@ -124,9 +163,9 @@ local function updateList()
             btn.MouseButton1Click:Connect(function()
                 selectedPlayer = player
                 CrushBtn.Text = "THROW AT: " .. player.Name
-                if listMode == "TP" and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                if listMode == "TP" and player.Character then
                     LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5)
-                elseif listMode == "VIEW" and player.Character and player.Character:FindFirstChild("Humanoid") then
+                elseif listMode == "VIEW" and player.Character then
                     workspace.CurrentCamera.CameraSubject = player.Character.Humanoid
                 end
             end)
@@ -134,42 +173,8 @@ local function updateList()
     end
 end
 
-ModeBtn.MouseButton1Click:Connect(function()
-    listMode = (listMode == "TP") and "VIEW" or "TP"
-    ModeBtn.Text = "MODE: " .. listMode
-end)
-
--- БЫСТРОЕ ОТСТУПЛЕНИЕ С ПРОВЕРКОЙ ПОЛА
-RetreatBtn.MouseButton1Click:Connect(function()
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local escapePoints = {
-        Vector3.new(450, 10, 450), Vector3.new(-450, 10, 450),
-        Vector3.new(450, 10, -450), Vector3.new(-450, 10, -450),
-        Vector3.new(0, 10, 500), Vector3.new(0, 10, -500)
-    }
-    
-    local bestPoint = nil
-    local maxDist = 0
-    
-    for _, point in pairs(escapePoints) do
-        local safePos = findSafePoint(point)
-        if safePos then
-            local distance = (hrp.Position - safePos).Magnitude
-            if distance > maxDist then
-                maxDist = distance
-                bestPoint = safePos
-            end
-        end
-    end
-    
-    if bestPoint then
-        hrp.CFrame = CFrame.new(bestPoint)
-    end
-end)
-
--- UN ATTACKED (УКЛОНЕНИЕ)
+-- УВОРОТЫ (UN ATTACKED)
+local unattackedActive = false
 UnattackedBtn.MouseButton1Click:Connect(function()
     unattackedActive = not unattackedActive
     UnattackedBtn.Text = "UN ATTACKED: " .. (unattackedActive and "ON" or "OFF")
@@ -181,15 +186,14 @@ task.spawn(function()
         if unattackedActive then
             local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                local randomOffset = Vector3.new(math.random(-7, 7), 0, math.random(-7, 7))
-                hrp.CFrame = hrp.CFrame * CFrame.new(randomOffset)
+                hrp.CFrame = hrp.CFrame * CFrame.new(math.random(-8, 8), 0, math.random(-8, 8))
             end
         end
-        task.wait(0.06)
+        task.wait(0.07)
     end
 end)
 
--- THROW TRASH (МЕТАНИЕ МУСОРОК)
+-- МЕТАНИЕ МУСОРОК
 CrushBtn.MouseButton1Click:Connect(function()
     if not selectedPlayer or not selectedPlayer.Character then return end
     local targetHrp = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -197,52 +201,50 @@ CrushBtn.MouseButton1Click:Connect(function()
     
     if targetHrp and myHrp then
         local oldPos = myHrp.CFrame
-        local trashFound = 0
-        
+        local count = 0
         for _, v in pairs(workspace:GetDescendants()) do
             if v:IsA("BasePart") and not v.Anchored then
-                local name = v.Name:lower()
-                if name:find("trash") or name:find("bin") or name:find("dumpster") or name:find("can") then
-                    trashFound = trashFound + 1
+                local n = v.Name:lower()
+                if n:find("trash") or n:find("bin") or n:find("can") then
+                    count = count + 1
                     myHrp.CFrame = v.CFrame * CFrame.new(0, 3, 0)
                     task.wait(0.12)
-                    if targetHrp.Parent then
-                        v.CFrame = targetHrp.CFrame * CFrame.new(0, 45, 0)
-                        v.AssemblyLinearVelocity = Vector3.new(0, -1200, 0)
-                    end
+                    v.CFrame = targetHrp.CFrame * CFrame.new(0, 50, 0)
+                    v.AssemblyLinearVelocity = Vector3.new(0, -1500, 0)
                     task.wait(0.05)
                 end
             end
-            if trashFound >= 6 then break end
+            if count >= 6 then break end
         end
         myHrp.CFrame = oldPos
     end
 end)
 
 -- ESP
+local espActive = false
 EspBtn.MouseButton1Click:Connect(function()
     espActive = not espActive
     EspBtn.Text = "ESP: " .. (espActive and "ON" or "OFF")
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             if espActive then
-                local hl = p.Character:FindFirstChild("Highlight") or Instance.new("Highlight", p.Character)
+                local hl = p.Character:FindFirstChild("HL") or Instance.new("Highlight", p.Character)
                 hl.FillColor = Color3.fromRGB(255, 0, 0)
-            elseif p.Character:FindFirstChild("Highlight") then
-                p.Character.Highlight:Destroy()
-            end
+            elseif p.Character:FindFirstChild("HL") then p.Character.HL:Destroy() end
         end
     end
 end)
 
+ModeBtn.MouseButton1Click:Connect(function()
+    listMode = (listMode == "TP") and "VIEW" or "TP"
+    ModeBtn.Text = "MODE: " .. listMode
+end)
+
 ResetBtn.MouseButton1Click:Connect(function() 
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid 
-    end
+    if LocalPlayer.Character then workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid end 
 end)
 
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
 Players.PlayerAdded:Connect(updateList)
 Players.PlayerRemoving:Connect(updateList)
 updateList()
