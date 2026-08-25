@@ -1,5 +1,5 @@
--- [[ KIRIK TSB HUB • MOBILE & LUXURY EDITION ]] --
--- Optimized for The Strongest Battlegrounds & Mobile Devices
+-- [[ KIRIK TSB HUB • V26 CLEAN LUXURY EDITION ]] --
+-- Fully Optimized for The Strongest Battlegrounds (PC & Mobile)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -11,13 +11,13 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Очистка старых копий
-if CoreGui:FindFirstChild("KirikTSBHub_Luxury") then
-    CoreGui.KirikTSBHub_Luxury:Destroy()
+-- Защита от дубликатов
+if CoreGui:FindFirstChild("KirikTSB_V26") then
+    CoreGui.KirikTSB_V26:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KirikTSBHub_Luxury"
+ScreenGui.Name = "KirikTSB_V26"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -25,20 +25,12 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 -- ==================== ПЕРЕМЕННЫЕ И СОСТОЯНИЯ ==================== --
 local State = {
     Esp = false,
-    Fly = false,
-    FlySpeed = 50,
     Noclip = false,
-    InfJump = false,
     WalkSpeed = 16,
-    JumpPower = 50,
     SpeedEnabled = false,
-    JumpEnabled = false,
     Unattacked = false,
     Fullbright = false,
-    HitboxExpander = false,
-    HitboxSize = 8,
-    AntiFling = false,
-    SelectedPlayer = nil,
+    SelectedTarget = nil, -- Может быть Player или Dummy
     Fov = 70,
     GuiScale = 1.0
 }
@@ -51,20 +43,20 @@ local OriginalLighting = {
     Ambient = Lighting.Ambient
 }
 
--- ==================== ТЕМА ==================== --
+-- ==================== ТЕМА ОФОРМЛЕНИЯ ==================== --
 local Theme = {
-    Background = Color3.fromRGB(15, 15, 20),
-    Sidebar = Color3.fromRGB(22, 22, 30),
-    Card = Color3.fromRGB(28, 28, 38),
-    InputBg = Color3.fromRGB(18, 18, 24),
+    Background = Color3.fromRGB(14, 14, 18),
+    Sidebar = Color3.fromRGB(20, 20, 26),
+    Card = Color3.fromRGB(25, 25, 34),
+    InputBg = Color3.fromRGB(16, 16, 22),
     Accent = Color3.fromRGB(255, 45, 85),
-    AccentAlt = Color3.fromRGB(255, 115, 0),
+    AccentDummy = Color3.fromRGB(0, 210, 255),
     AccentGradient = ColorSequence.new{
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 45, 85)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 115, 0))
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 120, 0))
     },
     Text = Color3.fromRGB(245, 245, 255),
-    TextDim = Color3.fromRGB(140, 140, 160),
+    TextDim = Color3.fromRGB(145, 145, 165),
     Success = Color3.fromRGB(46, 213, 115),
     Danger = Color3.fromRGB(255, 71, 87)
 }
@@ -78,12 +70,12 @@ NotifContainer.Parent = ScreenGui
 
 local function SendNotification(title, desc, duration, color)
     color = color or Theme.Accent
-    duration = duration or 3
+    duration = duration or 2.5
 
     local NotifFrame = Instance.new("Frame")
-    NotifFrame.Size = UDim2.new(1, 0, 0, 56)
+    NotifFrame.Size = UDim2.new(1, 0, 0, 52)
     NotifFrame.BackgroundColor3 = Theme.Card
-    NotifFrame.Position = UDim2.new(1.3, 0, 1, -65)
+    NotifFrame.Position = UDim2.new(1.3, 0, 1, -60)
     NotifFrame.Parent = NotifContainer
     Instance.new("UICorner", NotifFrame).CornerRadius = UDim.new(0, 8)
 
@@ -99,7 +91,7 @@ local function SendNotification(title, desc, duration, color)
 
     local Ttl = Instance.new("TextLabel", NotifFrame)
     Ttl.Text = title
-    Ttl.Size = UDim2.new(1, -20, 0, 18)
+    Ttl.Size = UDim2.new(1, -20, 0, 16)
     Ttl.Position = UDim2.new(0, 16, 0, 8)
     Ttl.TextColor3 = Theme.Text
     Ttl.Font = Enum.Font.GothamBold
@@ -109,21 +101,21 @@ local function SendNotification(title, desc, duration, color)
 
     local Msg = Instance.new("TextLabel", NotifFrame)
     Msg.Text = desc
-    Msg.Size = UDim2.new(1, -20, 0, 18)
-    Msg.Position = UDim2.new(0, 16, 0, 28)
+    Msg.Size = UDim2.new(1, -20, 0, 16)
+    Msg.Position = UDim2.new(0, 16, 0, 26)
     Msg.TextColor3 = Theme.TextDim
     Msg.Font = Enum.Font.Gotham
     Msg.TextSize = 10
     Msg.TextXAlignment = Enum.TextXAlignment.Left
     Msg.BackgroundTransparency = 1
 
-    TweenService:Create(NotifFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0, 0, 1, -65)
+    TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 0, 1, -60)
     }):Play()
 
     task.delay(duration, function()
-        local tw = TweenService:Create(NotifFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
-            Position = UDim2.new(1.3, 0, 1, -65)
+        local tw = TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            Position = UDim2.new(1.3, 0, 1, -60)
         })
         tw:Play()
         tw.Completed:Connect(function() NotifFrame:Destroy() end)
@@ -133,7 +125,7 @@ end
 -- ==================== ГЛАВНОЕ ОКНО ==================== --
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 520, 0, 340)
+MainFrame.Size = UDim2.new(0, 520, 0, 330)
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainFrame.BackgroundColor3 = Theme.Background
@@ -142,7 +134,6 @@ MainFrame.Active = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
--- Элемент динамического масштабирования
 local MainScale = Instance.new("UIScale", MainFrame)
 MainScale.Scale = State.GuiScale
 
@@ -157,7 +148,7 @@ local StrokeGradient = Instance.new("UIGradient", MainStroke)
 StrokeGradient.Color = Theme.AccentGradient
 StrokeGradient.Rotation = 45
 
--- ==================== ПЛАВНОЕ ПЕРЕМЕЩЕНИЕ ==================== --
+-- ==================== DRAG ЛОГИКА С УЧЕТОМ SCALE ==================== --
 local dragging, dragStart, startPos
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -206,7 +197,7 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
 local SubTitle = Instance.new("TextLabel", TitleBox)
-SubTitle.Text = "GOD EDITION • MOBILE"
+SubTitle.Text = "V26 LUXURY • TSB"
 SubTitle.Font = Enum.Font.GothamBold
 SubTitle.TextSize = 8
 SubTitle.TextColor3 = Theme.Accent
@@ -216,15 +207,14 @@ SubTitle.TextXAlignment = Enum.TextXAlignment.Left
 SubTitle.BackgroundTransparency = 1
 
 local TabButtonHolder = Instance.new("Frame", Sidebar)
-TabButtonHolder.Size = UDim2.new(1, -16, 1, -55)
-TabButtonHolder.Position = UDim2.new(0, 8, 0, 52)
+TabButtonHolder.Size = UDim2.new(1, -14, 1, -55)
+TabButtonHolder.Position = UDim2.new(0, 7, 0, 52)
 TabButtonHolder.BackgroundTransparency = 1
 
 local TabListLayout = Instance.new("UIListLayout", TabButtonHolder)
 TabListLayout.Padding = UDim.new(0, 4)
 TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Контейнер страниц
 local PagesHolder = Instance.new("Frame", MainFrame)
 PagesHolder.Size = UDim2.new(1, -150, 1, -12)
 PagesHolder.Position = UDim2.new(0, 145, 0, 6)
@@ -240,10 +230,7 @@ CloseIcon.Font = Enum.Font.GothamBold
 CloseIcon.TextSize = 12
 CloseIcon.ZIndex = 10
 Instance.new("UICorner", CloseIcon).CornerRadius = UDim.new(0, 6)
-
-CloseIcon.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
+CloseIcon.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -- ==================== МЕНЕДЖЕР ВКЛАДОК ==================== --
 local Tabs = {}
@@ -301,7 +288,6 @@ end
 
 -- ==================== UI КОМПОНЕНТЫ ==================== --
 
--- 1. Кнопка
 local function CreateActionButton(page, title, desc, btnText, callback)
     local Card = Instance.new("Frame", page)
     Card.Size = UDim2.new(1, 0, 0, 44)
@@ -313,7 +299,7 @@ local function CreateActionButton(page, title, desc, btnText, callback)
     TitleLbl.Font = Enum.Font.GothamBold
     TitleLbl.TextSize = 11
     TitleLbl.TextColor3 = Theme.Text
-    TitleLbl.Size = UDim2.new(0.6, 0, 0, 15)
+    TitleLbl.Size = UDim2.new(0.62, 0, 0, 15)
     TitleLbl.Position = UDim2.new(0, 10, 0, 6)
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.BackgroundTransparency = 1
@@ -323,7 +309,7 @@ local function CreateActionButton(page, title, desc, btnText, callback)
     DescLbl.Font = Enum.Font.Gotham
     DescLbl.TextSize = 9
     DescLbl.TextColor3 = Theme.TextDim
-    DescLbl.Size = UDim2.new(0.6, 0, 0, 14)
+    DescLbl.Size = UDim2.new(0.62, 0, 0, 14)
     DescLbl.Position = UDim2.new(0, 10, 0, 22)
     DescLbl.TextXAlignment = Enum.TextXAlignment.Left
     DescLbl.BackgroundTransparency = 1
@@ -350,7 +336,6 @@ local function CreateActionButton(page, title, desc, btnText, callback)
     end)
 end
 
--- 2. Переключатель (Toggle)
 local function CreateToggle(page, title, desc, default, callback)
     local Card = Instance.new("Frame", page)
     Card.Size = UDim2.new(1, 0, 0, 44)
@@ -404,7 +389,6 @@ local function CreateToggle(page, title, desc, default, callback)
     end)
 end
 
--- 3. Текстовое поле ввода числа (Вместо ползунков)
 local function CreateNumberInput(page, title, desc, default, min, max, callback)
     local Card = Instance.new("Frame", page)
     Card.Size = UDim2.new(1, 0, 0, 44)
@@ -451,7 +435,7 @@ local function CreateNumberInput(page, title, desc, default, min, max, callback)
     end)
 
     local currentVal = default
-    local function ApplyValue()
+    InputBox.FocusLost:Connect(function()
         TweenService:Create(BoxStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(60, 60, 80)}):Play()
         local num = tonumber(InputBox.Text)
         if num then
@@ -463,21 +447,36 @@ local function CreateNumberInput(page, title, desc, default, min, max, callback)
         else
             InputBox.Text = tostring(currentVal)
         end
-    end
-
-    InputBox.FocusLost:Connect(ApplyValue)
+    end)
     return InputBox
 end
 
 -- ==================== СТРАНИЦЫ ==================== --
 local CombatPage   = CreateTab("Бой", "⚔️", 1)
-local MovePage     = CreateTab("Мув", "⚡", 2)
-local VisualsPage  = CreateTab("Виз", "👁️", 3)
-local PlayersPage  = CreateTab("Таргет", "👥", 4)
+local MovePage     = CreateTab("Персонаж", "⚡", 2)
+local VisualsPage  = CreateTab("Визуалы", "👁️", 3)
+local TargetPage   = CreateTab("Таргет", "👥", 4)
 local SettingsPage = CreateTab("Опции", "⚙️", 5)
 
--- ==================== ЛОГИКА И ФУНКЦИИ ==================== --
+-- ==================== ЛОГИКА DUMMY И ЭНТИТИ ==================== --
 
+-- Поиск всех Weakest Dummy и манекенов в workspace
+local function GetDummies()
+    local dummies = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+            if not Players:GetPlayerFromCharacter(obj) and obj ~= LocalPlayer.Character then
+                local n = obj.Name:lower()
+                if n:find("dummy") or n:find("weakest") or (obj.Parent and obj.Parent.Name:lower():find("dummy")) then
+                    table.insert(dummies, obj)
+                end
+            end
+        end
+    end
+    return dummies
+end
+
+-- Остановка инерции (Safe Stop)
 local function StopVelocity(char)
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
@@ -491,6 +490,7 @@ local function StopVelocity(char)
     end
 end
 
+-- Безопасный поиск пола
 local function FindSafePoint(targetPos)
     local rayOrigin = Vector3.new(targetPos.X, 1000, targetPos.Z)
     local rayDirection = Vector3.new(0, -2000, 0)
@@ -506,10 +506,11 @@ local function FindSafePoint(targetPos)
     return nil
 end
 
--- ⚔️ ВКЛАДКА БОЙ (TSB):
-CreateToggle(CombatPage, "Unattacked / Jitter", "Быстрый рассинхрон позиции", false, function(v)
+-- ==================== ВКЛАДКА ⚔️ БОЙ ==================== --
+
+CreateToggle(CombatPage, "Unattacked / Jitter", "Быстрый рассинхрон позиции (анти-лок)", false, function(v)
     State.Unattacked = v
-    SendNotification("Unattacked", v and "Включен" or "Выключен", 2)
+    SendNotification("Unattacked", v and "Активирован" or "Отключен", 2)
 end)
 
 task.spawn(function()
@@ -517,14 +518,14 @@ task.spawn(function()
         if State.Unattacked then
             local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                hrp.CFrame = hrp.CFrame * CFrame.new(math.random(-8, 8), 0, math.random(-8, 8))
+                hrp.CFrame = hrp.CFrame * CFrame.new(math.random(-7, 7), 0, math.random(-7, 7))
             end
         end
         task.wait(0.06)
     end
 end)
 
-CreateActionButton(CombatPage, "Smart Escape", "Умный сейв из комбо", "ПОБЕГ", function()
+CreateActionButton(CombatPage, "Smart Escape", "Умный сейв из комбо с поиском пола", "ПОБЕГ", function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
@@ -554,7 +555,7 @@ CreateActionButton(CombatPage, "Smart Escape", "Умный сейв из ком�
     if bestPoint then
         StopVelocity(char)
         hrp.CFrame = CFrame.new(bestPoint)
-        SendNotification("Smart Escape", "Телепортирован в безопасность!", 2, Theme.Success)
+        SendNotification("Smart Escape", "Успешный телепорт в безопасность!", 2, Theme.Success)
     else
         local backPos = FindSafePoint(hrp.Position - (hrp.CFrame.LookVector * 150))
         if backPos then
@@ -565,13 +566,13 @@ CreateActionButton(CombatPage, "Smart Escape", "Умный сейв из ком�
     end
 end)
 
-CreateActionButton(CombatPage, "Throw Trash / Props", "Бросить мусор в цель", "ЗАПУСК", function()
-    if not State.SelectedPlayer or not State.SelectedPlayer.Character then
-        SendNotification("Ошибка", "Выберите игрока во вкладке [Таргет]!", 3, Theme.Danger)
+CreateActionButton(CombatPage, "Throw Trash / Props", "Бросить мусор в выбранную цель/Дами", "БРОСОК", function()
+    if not State.SelectedTarget or not State.SelectedTarget.Character then
+        SendNotification("Ошибка", "Сначала выберите Игрока или Dummy во вкладке [Таргет]!", 3, Theme.Danger)
         return
     end
 
-    local targetHrp = State.SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetHrp = State.SelectedTarget.Character:FindFirstChild("HumanoidRootPart")
     local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not (targetHrp and myHrp) then return end
 
@@ -583,183 +584,112 @@ CreateActionButton(CombatPage, "Throw Trash / Props", "Бросить мусор
             if n:find("trash") or n:find("bin") or n:find("can") or n:find("dump") or n:find("prop") or n:find("rock") then
                 count = count + 1
                 myHrp.CFrame = v.CFrame * CFrame.new(0, 3, 0)
-                task.wait(0.1)
+                task.wait(0.09)
                 v.CFrame = targetHrp.CFrame * CFrame.new(0, 45, 0)
-                v.AssemblyLinearVelocity = Vector3.new(0, -2000, 0)
-                task.wait(0.04)
+                v.AssemblyLinearVelocity = Vector3.new(0, -2200, 0)
+                task.wait(0.03)
             end
         end
         if count >= 10 then break end
     end
     myHrp.CFrame = oldPos
-    SendNotification("Trash", "Запущено " .. count .. " объектов!", 2, Theme.Success)
+    SendNotification("Trash Attack", "Запущено " .. count .. " объектов в цель!", 2, Theme.Success)
 end)
 
-CreateToggle(CombatPage, "Hitbox Expander", "Увеличить хитбоксы врагов", false, function(v)
-    State.HitboxExpander = v
-end)
+-- ==================== ВКЛАДКА ⚡ ПЕРСОНАЖ ==================== --
 
-CreateNumberInput(CombatPage, "Размер хитбокса", "Размер HRP", State.HitboxSize, 2, 50, function(val)
-    State.HitboxSize = val
-end)
-
-RunService.RenderStepped:Connect(function()
-    if State.HitboxExpander then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                p.Character.HumanoidRootPart.Size = Vector3.new(State.HitboxSize, State.HitboxSize, State.HitboxSize)
-                p.Character.HumanoidRootPart.Transparency = 0.6
-                p.Character.HumanoidRootPart.CanCollide = false
-            end
-        end
-    end
-end)
-
-CreateToggle(CombatPage, "Anti-Fling", "Защита от столкновений", false, function(v)
-    State.AntiFling = v
-end)
-
-RunService.Stepped:Connect(function()
-    if State.AntiFling and LocalPlayer.Character then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character then
-                for _, part in pairs(p.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then part.CanCollide = false end
-                end
-            end
-        end
-    end
-end)
-
--- ==================== ВКЛАДКА ДВИЖЕНИЕ ==================== --
-local flyBodyVel, flyBodyGyro
-CreateToggle(MovePage, "Fly", "Полет персонажа", false, function(v)
-    State.Fly = v
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    if v then
-        flyBodyVel = Instance.new("BodyVelocity", hrp)
-        flyBodyVel.Velocity = Vector3.zero
-        flyBodyVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-
-        flyBodyGyro = Instance.new("BodyGyro", hrp)
-        flyBodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
-        flyBodyGyro.CFrame = hrp.CFrame
-
-        task.spawn(function()
-            while State.Fly and char and hrp do
-                local cam = Camera.CFrame
-                local moveDir = Vector3.zero
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-
-                flyBodyVel.Velocity = moveDir * State.FlySpeed
-                flyBodyGyro.CFrame = cam
-                task.wait()
-            end
-            if flyBodyVel then flyBodyVel:Destroy() end
-            if flyBodyGyro then flyBodyGyro:Destroy() end
-        end)
-    else
-        if flyBodyVel then flyBodyVel:Destroy() end
-        if flyBodyGyro then flyBodyGyro:Destroy() end
-    end
-end)
-
-CreateNumberInput(MovePage, "Скорость полета", "Скорость Fly", State.FlySpeed, 10, 300, function(val)
-    State.FlySpeed = val
-end)
-
-CreateToggle(MovePage, "Noclip", "Ходьба сквозь стены", false, function(v)
+CreateToggle(MovePage, "Noclip", "Проход сквозь любые стены", false, function(v)
     State.Noclip = v
+    SendNotification("Noclip", v and "Включен" or "Выключен", 2)
 end)
 
 RunService.Stepped:Connect(function()
     if State.Noclip and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
         end
     end
 end)
 
-CreateToggle(MovePage, "Infinite Jump", "Бесконечный прыжок", false, function(v)
-    State.InfJump = v
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if State.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
-
-CreateToggle(MovePage, "Custom Speed", "Включить свою скорость", false, function(v)
+CreateToggle(MovePage, "Speed Modifier", "Включить кастомную скорость", false, function(v)
     State.SpeedEnabled = v
     if not v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
     end
+    SendNotification("Speed", v and "Скорость изменена" or "Скорость сброшена", 2)
 end)
 
-CreateNumberInput(MovePage, "Значение скорости", "WalkSpeed", State.WalkSpeed, 16, 300, function(val)
+CreateNumberInput(MovePage, "Значение скорости", "WalkSpeed", State.WalkSpeed, 16, 250, function(val)
     State.WalkSpeed = val
 end)
 
-CreateToggle(MovePage, "Custom Jump", "Включить высокий прыжок", false, function(v)
-    State.JumpEnabled = v
-    if not v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower = 50
-    end
-end)
-
-CreateNumberInput(MovePage, "Сила прыжка", "JumpPower", State.JumpPower, 50, 400, function(val)
-    State.JumpPower = val
-end)
-
 RunService.RenderStepped:Connect(function()
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum then
-        if State.SpeedEnabled then hum.WalkSpeed = State.WalkSpeed end
-        if State.JumpEnabled then hum.JumpPower = State.JumpPower end
-    end
-end)
-
--- ==================== ВКЛАДКА ВИЗУАЛ ==================== --
-local function ApplyEsp(player)
-    if player == LocalPlayer then return end
-    local function AddHighlight(char)
-        if not char then return end
-        local hl = char:FindFirstChild("TSB_ESP") or Instance.new("Highlight")
-        hl.Name = "TSB_ESP"
-        hl.FillColor = Theme.Accent
-        hl.OutlineColor = Color3.new(1, 1, 1)
-        hl.FillTransparency = 0.5
-        hl.OutlineTransparency = 0
-        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        hl.Enabled = State.Esp
-        hl.Parent = char
-    end
-    if player.Character then AddHighlight(player.Character) end
-    player.CharacterAdded:Connect(AddHighlight)
-end
-
-for _, p in pairs(Players:GetPlayers()) do ApplyEsp(p) end
-Players.PlayerAdded:Connect(ApplyEsp)
-
-CreateToggle(VisualsPage, "Chams ESP", "Подсветка игроков через стены", false, function(v)
-    State.Esp = v
-    for _, p in pairs(Players:GetPlayers()) do
-        if p.Character and p.Character:FindFirstChild("TSB_ESP") then
-            p.Character.TSB_ESP.Enabled = v
+    if State.SpeedEnabled and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = State.WalkSpeed
         end
     end
 end)
 
-CreateToggle(VisualsPage, "Fullbright", "Максимальная яркость мира", false, function(v)
+-- ==================== ВКЛАДКА 👁️ ВИЗУАЛЫ ==================== --
+
+local function ApplyHighlight(model, isDummy)
+    if not model or model == LocalPlayer.Character then return end
+    local hl = model:FindFirstChild("TSB_Highlight") or Instance.new("Highlight")
+    hl.Name = "TSB_Highlight"
+    hl.FillColor = isDummy and Theme.AccentDummy or Theme.Accent
+    hl.OutlineColor = Color3.new(1, 1, 1)
+    hl.FillTransparency = 0.45
+    hl.OutlineTransparency = 0
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Enabled = State.Esp
+    hl.Parent = model
+end
+
+-- Обработка реальных игроков
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then
+        if p.Character then ApplyHighlight(p.Character, false) end
+        p.CharacterAdded:Connect(function(char) ApplyHighlight(char, false) end)
+    end
+end
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function(char) ApplyHighlight(char, false) end)
+end)
+
+-- Периодическая проверка и подсветка Weakest Dummy
+task.spawn(function()
+    while true do
+        if State.Esp then
+            for _, dummy in pairs(GetDummies()) do
+                ApplyHighlight(dummy, true)
+            end
+        end
+        task.wait(2)
+    end
+end)
+
+CreateToggle(VisualsPage, "Chams ESP (Игроки + Дами)", "Подсветка игроков и Weakest Dummy", false, function(v)
+    State.Esp = v
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Character and p.Character:FindFirstChild("TSB_Highlight") then
+            p.Character.TSB_Highlight.Enabled = v
+        end
+    end
+    for _, dummy in pairs(GetDummies()) do
+        if dummy:FindFirstChild("TSB_Highlight") then
+            dummy.TSB_Highlight.Enabled = v
+        else
+            if v then ApplyHighlight(dummy, true) end
+        end
+    end
+    SendNotification("ESP", v and "ESP активен (Игроки + Дами)" or "ESP выключен", 2)
+end)
+
+CreateToggle(VisualsPage, "Fullbright", "Максимальная яркость карты", false, function(v)
     State.Fullbright = v
     if v then
         Lighting.Brightness = 2
@@ -784,11 +714,13 @@ end)
 CreateActionButton(VisualsPage, "Сбросить камеру", "Вернуть фокус на себя", "СБРОС", function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        SendNotification("Камера", "Фокус возвращен персонажу", 2)
     end
 end)
 
--- ==================== ВКЛАДКА ТАРГЕТ ==================== --
-local TargetBox = Instance.new("Frame", PlayersPage)
+-- ==================== ВКЛАДКА 👥 ТАРГЕТ & ДАМИ ==================== --
+
+local TargetBox = Instance.new("Frame", TargetPage)
 TargetBox.Size = UDim2.new(1, 0, 0, 56)
 TargetBox.BackgroundColor3 = Theme.Sidebar
 Instance.new("UICorner", TargetBox).CornerRadius = UDim.new(0, 8)
@@ -797,11 +729,12 @@ local TargetAvatar = Instance.new("ImageLabel", TargetBox)
 TargetAvatar.Size = UDim2.new(0, 42, 0, 42)
 TargetAvatar.Position = UDim2.new(0, 7, 0, 7)
 TargetAvatar.BackgroundColor3 = Theme.Card
-TargetAvatar.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+TargetAvatar.Image = "rbxassetid://6031075938"
+TargetAvatar.ImageColor3 = Theme.Accent
 Instance.new("UICorner", TargetAvatar).CornerRadius = UDim.new(0, 6)
 
 local TargetName = Instance.new("TextLabel", TargetBox)
-TargetName.Text = "Никто не выбран"
+TargetName.Text = "Цель не выбрана"
 TargetName.Font = Enum.Font.GothamBold
 TargetName.TextSize = 12
 TargetName.TextColor3 = Theme.Text
@@ -811,7 +744,7 @@ TargetName.TextXAlignment = Enum.TextXAlignment.Left
 TargetName.BackgroundTransparency = 1
 
 local TargetSub = Instance.new("TextLabel", TargetBox)
-TargetSub.Text = "Нажмите на игрока из списка"
+TargetSub.Text = "Нажмите на игрока или Dummy в списке"
 TargetSub.Font = Enum.Font.Gotham
 TargetSub.TextSize = 9
 TargetSub.TextColor3 = Theme.TextDim
@@ -820,7 +753,7 @@ TargetSub.Position = UDim2.new(0, 56, 0, 28)
 TargetSub.TextXAlignment = Enum.TextXAlignment.Left
 TargetSub.BackgroundTransparency = 1
 
-local ActionsContainer = Instance.new("Frame", PlayersPage)
+local ActionsContainer = Instance.new("Frame", TargetPage)
 ActionsContainer.Size = UDim2.new(1, 0, 0, 30)
 ActionsContainer.BackgroundTransparency = 1
 
@@ -844,27 +777,27 @@ ViewBtn.TextSize = 10
 Instance.new("UICorner", ViewBtn).CornerRadius = UDim.new(0, 6)
 
 TpToBtn.MouseButton1Click:Connect(function()
-    if State.SelectedPlayer and State.SelectedPlayer.Character and State.SelectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    if State.SelectedTarget and State.SelectedTarget.Character and State.SelectedTarget.Character:FindFirstChild("HumanoidRootPart") then
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = State.SelectedPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-            SendNotification("Телепорт", "Перемещен к " .. State.SelectedPlayer.DisplayName, 2, Theme.Success)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = State.SelectedTarget.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+            SendNotification("Телепорт", "Перемещен к " .. State.SelectedTarget.Name, 2, Theme.Success)
         end
     end
 end)
 
 ViewBtn.MouseButton1Click:Connect(function()
-    if State.SelectedPlayer and State.SelectedPlayer.Character and State.SelectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        Camera.CameraSubject = State.SelectedPlayer.Character:FindFirstChildOfClass("Humanoid")
-        SendNotification("Слежка", "Камера переключена", 2)
+    if State.SelectedTarget and State.SelectedTarget.Character and State.SelectedTarget.Character:FindFirstChildOfClass("Humanoid") then
+        Camera.CameraSubject = State.SelectedTarget.Character:FindFirstChildOfClass("Humanoid")
+        SendNotification("Слежка", "Камера направлена на " .. State.SelectedTarget.Name, 2)
     end
 end)
 
-local PlayersListFrame = Instance.new("Frame", PlayersPage)
-PlayersListFrame.Size = UDim2.new(1, 0, 0, 110)
-PlayersListFrame.BackgroundColor3 = Theme.Sidebar
-Instance.new("UICorner", PlayersListFrame).CornerRadius = UDim.new(0, 8)
+local TargetListFrame = Instance.new("Frame", TargetPage)
+TargetListFrame.Size = UDim2.new(1, 0, 0, 120)
+TargetListFrame.BackgroundColor3 = Theme.Sidebar
+Instance.new("UICorner", TargetListFrame).CornerRadius = UDim.new(0, 8)
 
-local PScroll = Instance.new("ScrollingFrame", PlayersListFrame)
+local PScroll = Instance.new("ScrollingFrame", TargetListFrame)
 PScroll.Size = UDim2.new(1, -8, 1, -8)
 PScroll.Position = UDim2.new(0, 4, 0, 4)
 PScroll.BackgroundTransparency = 1
@@ -875,10 +808,33 @@ PScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 local PLayout = Instance.new("UIListLayout", PScroll)
 PLayout.Padding = UDim.new(0, 4)
 
-local function UpdatePlayersList()
+local function UpdateTargetList()
     for _, ch in pairs(PScroll:GetChildren()) do
         if ch:IsA("TextButton") then ch:Destroy() end
     end
+
+    -- 1. Добавляем Weakest Dummy
+    for idx, dummy in pairs(GetDummies()) do
+        local dBtn = Instance.new("TextButton", PScroll)
+        dBtn.Size = UDim2.new(1, -4, 0, 24)
+        dBtn.BackgroundColor3 = Color3.fromRGB(15, 30, 45)
+        dBtn.Text = "  🤖 [BOT] " .. dummy.Name .. " #" .. idx
+        dBtn.TextColor3 = Theme.AccentDummy
+        dBtn.Font = Enum.Font.GothamBold
+        dBtn.TextSize = 10
+        dBtn.TextXAlignment = Enum.TextXAlignment.Left
+        Instance.new("UICorner", dBtn).CornerRadius = UDim.new(0, 5)
+
+        dBtn.MouseButton1Click:Connect(function()
+            State.SelectedTarget = {Name = dummy.Name .. " #" .. idx, Character = dummy, IsNPC = true}
+            TargetName.Text = dummy.Name
+            TargetSub.Text = "[TSB NPC Training Dummy]"
+            TargetAvatar.Image = "rbxassetid://6031075938"
+            TargetAvatar.ImageColor3 = Theme.AccentDummy
+        end)
+    end
+
+    -- 2. Добавляем Реальных игроков
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
             local Btn = Instance.new("TextButton", PScroll)
@@ -892,10 +848,11 @@ local function UpdatePlayersList()
             Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 5)
 
             Btn.MouseButton1Click:Connect(function()
-                State.SelectedPlayer = p
+                State.SelectedTarget = {Name = p.DisplayName, Character = p.Character, IsNPC = false}
                 TargetName.Text = p.DisplayName
                 TargetSub.Text = "@" .. p.Name
                 task.spawn(function()
+                    TargetAvatar.ImageColor3 = Color3.new(1, 1, 1)
                     TargetAvatar.Image = Players:GetUserThumbnailAsync(p.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
                 end)
             end)
@@ -903,20 +860,19 @@ local function UpdatePlayersList()
     end
 end
 
-Players.PlayerAdded:Connect(UpdatePlayersList)
-Players.PlayerRemoving:Connect(UpdatePlayersList)
-UpdatePlayersList()
+Players.PlayerAdded:Connect(UpdateTargetList)
+Players.PlayerRemoving:Connect(UpdateTargetList)
+UpdateTargetList()
 
--- ==================== ВКЛАДКА ОПЦИИ / НАСТРОЙКИ (UISCALE) ==================== --
+-- ==================== ВКЛАДКА ⚙️ ОПЦИИ / НАСТРОЙКИ (UISCALE) ==================== --
 
--- 1. Секция изменения размера хаба
 local ScaleCard = Instance.new("Frame", SettingsPage)
 ScaleCard.Size = UDim2.new(1, 0, 0, 78)
 ScaleCard.BackgroundColor3 = Theme.Card
 Instance.new("UICorner", ScaleCard).CornerRadius = UDim.new(0, 8)
 
 local ScaleTitle = Instance.new("TextLabel", ScaleCard)
-ScaleTitle.Text = "Размер всего Хаба (Scale)"
+ScaleTitle.Text = "Размер интерфейса (UIScale)"
 ScaleTitle.Font = Enum.Font.GothamBold
 ScaleTitle.TextSize = 11
 ScaleTitle.TextColor3 = Theme.Text
@@ -949,7 +905,7 @@ SStroke.Color = Color3.fromRGB(60, 60, 80)
 SStroke.Thickness = 1
 
 local function SetScale(val)
-    val = math.clamp(val, 0.5, 2.0)
+    val = math.clamp(val, 0.6, 1.6)
     State.GuiScale = val
     ScaleInput.Text = string.format("%.2f", val)
     TweenService:Create(MainScale, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
@@ -962,7 +918,6 @@ ScaleInput.FocusLost:Connect(function()
     if num then SetScale(num) else ScaleInput.Text = tostring(State.GuiScale) end
 end)
 
--- Кнопки быстрых пресетов масштаба
 local PresetsHolder = Instance.new("Frame", ScaleCard)
 PresetsHolder.Size = UDim2.new(1, -20, 0, 24)
 PresetsHolder.Position = UDim2.new(0, 10, 0, 46)
@@ -982,13 +937,10 @@ for _, pVal in ipairs(presets) do
     pBtn.Font = Enum.Font.GothamMedium
     pBtn.TextSize = 10
     Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 5)
-
-    pBtn.MouseButton1Click:Connect(function()
-        SetScale(pVal)
-    end)
+    pBtn.MouseButton1Click:Connect(function() SetScale(pVal) end)
 end
 
-CreateActionButton(SettingsPage, "Rejoin Server", "Перезайти на этот сервер", "REJOIN", function()
+CreateActionButton(SettingsPage, "Rejoin Server", "Перезайти на этот же сервер", "REJOIN", function()
     game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 end)
 
@@ -1044,16 +996,15 @@ local function ToggleHub()
 end
 
 ToggleBtn.MouseButton1Click:Connect(ToggleHub)
-
 UserInputService.InputBegan:Connect(function(input, processed)
     if not processed and (input.KeyCode == Enum.KeyCode.RightControl or input.KeyCode == Enum.KeyCode.Insert) then
         ToggleHub()
     end
 end)
 
--- Открытие первой вкладки
+-- Инициализация первой страницы
 Tabs["Бой"].Btn.BackgroundTransparency = 0
 Tabs["Бой"].Label.TextColor3 = Theme.Text
 Tabs["Бой"].Page.Visible = true
 
-SendNotification("⚔️ KIRIK TSB HUB", "Загружен для телефона и ПК!", 4, Theme.Accent)
+SendNotification("💎 KIRIK TSB HUB", "V26 Clean Edition загружен!", 3.5, Theme.Accent)
